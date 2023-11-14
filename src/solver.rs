@@ -42,10 +42,10 @@ pub fn solve(game: &Game, trie: &TrieNode, swaps: u8) -> Vec<Solution> {
     let mut solutions = Vec::new();
     for x in 0..5 {
         for y in 0..5 {
-            for (letter, trie) in &trie.children {
+            for (letter, trie) in trie.children() {
 
                 let existing = game.grid[y as usize][x as usize];
-                let swaps = if *letter == existing {
+                let swaps = if letter == existing {
                     swaps
                 } else if swaps > 0 {
                     swaps - 1
@@ -54,7 +54,7 @@ pub fn solve(game: &Game, trie: &TrieNode, swaps: u8) -> Vec<Solution> {
                 };
 
                 let mut path = Path::default();
-                path.push((x, y, *letter));
+                path.push((x, y, letter));
                 visit_tile(&game, &mut solutions, &mut path, &trie, swaps, x, y);
             }
         }
@@ -72,7 +72,7 @@ fn visit_tile(
     x: i8,
     y: i8,
 ) {
-    if trie.is_end_of_word {
+    if trie.is_end_of_word() {
         let score = score(game, &current);
         solutions.push(Solution {
             path: current.clone(),
@@ -84,23 +84,27 @@ fn visit_tile(
             continue;
         }
 
-        for (letter, trie) in &trie.children {
-            let existing = game.grid[ny as usize][nx as usize];
-            let swaps = if *letter == existing {
-                swaps
-            } else if swaps > 0 {
-                swaps - 1
-            } else {
-                continue;
-            };
-        
+        let existing = game.grid[ny as usize][nx as usize];
+        if let Some(trie) = trie.child(existing) {
             if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
                 continue;
             }
-
-            current.push((x, y, *letter));
+            current.push((x, y, existing));
             visit_tile(game, solutions, current, trie, swaps, nx, ny);
             current.pop();
+        }
+        if swaps > 0 {
+            for (letter, trie) in trie.children() {
+                if letter == existing {
+                    continue;
+                }
+                if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
+                    break;
+                }
+                current.push((x, y, letter));
+                visit_tile(game, solutions, current, trie, swaps - 1, nx, ny);
+                current.pop();
+            }
         }
     }
 }
