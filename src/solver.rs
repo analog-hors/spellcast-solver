@@ -40,13 +40,26 @@ fn score(game: &Game, path: &[(i8, i8, Letter)]) -> u32 {
 
 pub fn solve(game: &Game, trie: &TrieNode, swaps: u8) -> Vec<Solution> {
     let mut solutions = Vec::new();
-    for letter in Letter::ALL {
-        for x in 0..5 {
-            for y in 0..5 {
-                visit_tile(&game, &mut solutions, &mut Path::default(), &trie, swaps, x, y, letter);
+    for x in 0..5 {
+        for y in 0..5 {
+            for (letter, trie) in &trie.children {
+
+                let existing = game.grid[y as usize][x as usize];
+                let swaps = if *letter == existing {
+                    swaps
+                } else if swaps > 0 {
+                    swaps - 1
+                } else {
+                    continue;
+                };
+
+                let mut path = Path::default();
+                path.push((x, y, *letter));
+                visit_tile(&game, &mut solutions, &mut path, &trie, swaps, x, y);
             }
         }
     }
+
     solutions
 }
 
@@ -58,29 +71,7 @@ fn visit_tile(
     swaps: u8,
     x: i8,
     y: i8,
-    letter: Letter
 ) {
-    if x < 0 || x >= Game::WIDTH as i8 || y < 0 || y >= Game::HEIGHT as i8 {
-        return;
-    }
-    if current.iter().any(|&(px, py, _)| (px, py) == (x, y)) {
-        return;
-    }
-
-    let existing = game.grid[y as usize][x as usize];
-    let swaps = if letter == existing {
-        swaps
-    } else if swaps > 0 {
-        swaps - 1
-    } else {
-        return;
-    };
-
-    let Some(trie) = &trie.next[letter as usize] else {
-        return;
-    };
-
-    current.push((x, y, letter));
     if trie.is_end_of_word {
         let score = score(game, &current);
         solutions.push(Solution {
@@ -89,11 +80,29 @@ fn visit_tile(
         });
     }
     for (nx, ny) in neighbours(x, y) {
-        for letter in Letter::ALL {
-            visit_tile(game, solutions, current, trie, swaps, nx, ny, letter);
+        if nx < 0 || nx >= Game::WIDTH as i8 || ny < 0 || ny >= Game::HEIGHT as i8 {
+            continue;
+        }
+
+        for (letter, trie) in &trie.children {
+            let existing = game.grid[ny as usize][nx as usize];
+            let swaps = if *letter == existing {
+                swaps
+            } else if swaps > 0 {
+                swaps - 1
+            } else {
+                continue;
+            };
+        
+            if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
+                continue;
+            }
+
+            current.push((x, y, *letter));
+            visit_tile(game, solutions, current, trie, swaps, nx, ny);
+            current.pop();
         }
     }
-    current.pop();
 }
 
 fn neighbours(x: i8, y: i8) -> impl Iterator<Item=(i8, i8)> {

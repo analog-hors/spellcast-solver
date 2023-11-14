@@ -79,7 +79,7 @@ impl TryFrom<char> for Letter {
 
 #[derive(Debug, Default, Clone)]
 pub struct TrieNode {
-    pub next: Box<[Option<TrieNode>; 26]>,
+    pub children: Vec<(Letter, TrieNode)>,
     pub is_end_of_word: bool,
 }
 
@@ -89,11 +89,14 @@ pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
         let mut current = &mut root;
         for c in word.chars() {
             let letter = Letter::try_from(c).unwrap();
-            let next = &mut current.next[letter as usize];
-            if next.is_none() {
-                *next = Some(TrieNode::default());
-            }
-            current = next.as_mut().unwrap();
+            let (_, next) = match current.children.iter().position(|(l, _)| *l == letter) {
+                Some(next) => &mut current.children[next],
+                None => {
+                    current.children.push((letter, TrieNode::default()));
+                    current.children.last_mut().unwrap()
+                }
+            };
+            current = next;
         }
         current.is_end_of_word = true;
     }
