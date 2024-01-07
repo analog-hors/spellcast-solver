@@ -79,35 +79,8 @@ impl TryFrom<char> for Letter {
 
 #[derive(Debug, Default, Clone)]
 pub struct TrieNode {
-    children: Box<[Option<TrieNode>; 26]>,
-    letters: u32,
-    is_end_of_word: bool,
-}
-
-impl TrieNode {
-    pub fn child(&self, letter: Letter) -> Option<&TrieNode> {
-        self.children[letter as usize].as_ref()
-    }
-
-    pub fn children(&self) -> impl Iterator<Item=(Letter, &TrieNode)> {
-        let mut letters = self.letters;
-        std::iter::from_fn(move || {
-            if letters == 0 {
-                return None;
-            }
-
-            let index = letters.trailing_zeros() as usize;
-            letters &= letters - 1;
-
-            let letter = Letter::ALL[index];
-            let child = self.children[index].as_ref().unwrap();
-            Some((letter, child))
-        })
-    }
-
-    pub fn is_end_of_word(&self) -> bool {
-        self.is_end_of_word
-    }
+    pub children: Vec<(Letter, TrieNode)>,
+    pub is_end_of_word: bool,
 }
 
 pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
@@ -116,12 +89,14 @@ pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
         let mut current = &mut root;
         for c in word.chars() {
             let letter = Letter::try_from(c).unwrap();
-            let next = &mut current.children[letter as usize];
-            if next.is_none() {
-                *next = Some(TrieNode::default());
-                current.letters |= 1 << letter as u8;
-            }
-            current = next.as_mut().unwrap();
+            let (_, next) = match current.children.iter().position(|(l, _)| *l == letter) {
+                Some(next) => &mut current.children[next],
+                None => {
+                    current.children.push((letter, TrieNode::default()));
+                    current.children.last_mut().unwrap()
+                }
+            };
+            current = next;
         }
         current.is_end_of_word = true;
     }
