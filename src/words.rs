@@ -1,38 +1,9 @@
+use super::game::{letter_score, long_word_bonus};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Letter {
     A, B, C, D, E, F, G, H, I, J, K, L, M,
     N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
-}
-
-impl Letter {
-    pub const ALL: [Letter; 26] = [
-        Letter::A,
-        Letter::B,
-        Letter::C,
-        Letter::D,
-        Letter::E,
-        Letter::F,
-        Letter::G,
-        Letter::H,
-        Letter::I,
-        Letter::J,
-        Letter::K,
-        Letter::L,
-        Letter::M,
-        Letter::N,
-        Letter::O,
-        Letter::P,
-        Letter::Q,
-        Letter::R,
-        Letter::S,
-        Letter::T,
-        Letter::U,
-        Letter::V,
-        Letter::W,
-        Letter::X,
-        Letter::Y,
-        Letter::Z,
-    ];
 }
 
 impl From<Letter> for char {
@@ -81,14 +52,17 @@ impl TryFrom<char> for Letter {
 pub struct TrieNode {
     pub children: Vec<(Letter, TrieNode)>,
     pub is_end_of_word: bool,
+    pub max_score: u32,
 }
 
 pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
     let mut root = TrieNode::default();
     for word in words {
+        let max_score = max_score(word);
         let mut current = &mut root;
         for c in word.chars() {
             let letter = Letter::try_from(c).unwrap();
+            current.max_score = current.max_score.max(max_score);
             let (_, next) = match current.children.iter().position(|(l, _)| *l == letter) {
                 Some(next) => &mut current.children[next],
                 None => {
@@ -98,7 +72,20 @@ pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
             };
             current = next;
         }
+        current.max_score = current.max_score.max(max_score);
         current.is_end_of_word = true;
     }
     root
+}
+
+fn max_score(word: &str) -> u32 {
+    let mut word_score = 0;
+    let mut max_letter_score = 0;
+    for c in word.chars() {
+        let letter = Letter::try_from(c).unwrap();
+        word_score += letter_score(letter);
+        max_letter_score = max_letter_score.max(letter_score(letter));
+    }
+    word_score += max_letter_score;    
+    word_score * 2 + long_word_bonus(word.len())
 }

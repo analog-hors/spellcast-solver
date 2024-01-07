@@ -6,7 +6,10 @@ use game::Game;
 use words::Letter;
 
 fn main() {
-    let swaps = std::env::args().nth(1).unwrap().parse().unwrap();
+    let mut args = std::env::args().skip(1);
+    let swaps = args.next().unwrap().parse().unwrap();
+    let max_solutions = args.next().unwrap().parse().unwrap();
+
     let mut parts = std::io::stdin()
         .lines()
         .flat_map(|l| l.unwrap().split_ascii_whitespace().map(|s| s.to_owned()).collect::<Vec<_>>());
@@ -35,11 +38,11 @@ fn main() {
     let trie = words::make_word_trie(include_str!("../wordlist.txt").lines());
 
     let start = std::time::Instant::now();
-    let mut solutions = solver::solve(&game, &trie, swaps);
+    let mut solutions = solver::solve(&game, &trie, swaps, max_solutions);
     let elapsed = start.elapsed();
 
     solutions.sort_unstable_by_key(|s| s.score);
-    for solution in &solutions {
+    for solution in solutions.iter() {
         let word = solution.path
             .iter()
             .map(|&(_, _, l)| char::from(l))
