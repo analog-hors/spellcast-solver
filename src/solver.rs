@@ -43,11 +43,44 @@ fn score(game: &Game, path: &[(i8, i8, Letter)]) -> u32 {
 
 pub fn solve(game: &Game, trie: &TrieNode, swaps: u8, max_solutions: usize) -> Vec<Solution> {
     let mut solutions = BinaryHeap::new();
-    for x in 0..5 {
-        for y in 0..5 {
-            for (letter, trie) in &trie.children {
+    search(&game, &mut solutions, max_solutions, &mut Path::default(), &trie, swaps);
+    solutions.into_iter().map(|Reverse(s)| s).collect()
+}
 
-                let existing = game.grid[y as usize][x as usize];
+fn search(
+    game: &Game,
+    solutions: &mut BinaryHeap<Reverse<Solution>>,
+    max_solutions: usize,
+    current: &mut Path,
+    trie: &TrieNode,
+    swaps: u8,
+) {
+    let min_solution = solutions.peek().map(|Reverse(s)| s.score);
+    if solutions.len() >= max_solutions && Some(trie.max_score) <= min_solution {
+        return;
+    }
+    if trie.is_end_of_word {
+        solutions.push(Reverse(Solution {
+            path: current.clone(),
+            score: score(game, &current),
+        }));
+        if solutions.len() > max_solutions {
+            solutions.pop();
+        }
+    }
+
+    let (moves_x, moves_y) = match current.last() {
+        Some(&(x, y, _)) => (
+            (x - 1).max(0)..(x + 2).min(Game::WIDTH as i8),
+            (y - 1).max(0)..(y + 2).min(Game::HEIGHT as i8),
+        ),
+        None => (0..Game::WIDTH as i8, 0..Game::HEIGHT as i8),
+    };
+
+    for nx in moves_x {
+        for ny in moves_y.clone() {
+            for (letter, trie) in &trie.children {
+                let existing = game.grid[ny as usize][nx as usize];
                 let swaps = if *letter == existing {
                     swaps
                 } else if swaps > 0 {
@@ -55,77 +88,15 @@ pub fn solve(game: &Game, trie: &TrieNode, swaps: u8, max_solutions: usize) -> V
                 } else {
                     continue;
                 };
+            
+                if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
+                    continue;
+                }
 
-                let mut path = Path::default();
-                path.push((x, y, *letter));
-                visit_tile(&game, &mut solutions, max_solutions, &mut path, &trie, swaps, x, y);
+                current.push((nx, ny, *letter));
+                search(game, solutions, max_solutions, current, trie, swaps);
+                current.pop();
             }
         }
     }
-
-    solutions.into_iter().map(|Reverse(s)| s).collect()
-}
-
-fn visit_tile(
-    game: &Game,
-    solutions: &mut BinaryHeap<Reverse<Solution>>,
-    max_solutions: usize,
-    current: &mut Path,
-    trie: &TrieNode,
-    swaps: u8,
-    x: i8,
-    y: i8,
-) {
-    if let Some(Reverse(lower_bound)) = solutions.peek() {
-        if solutions.len() >= max_solutions && trie.max_score <= lower_bound.score {
-            return;
-        }
-    }
-    if trie.is_end_of_word {
-        let score = score(game, &current);
-        solutions.push(Reverse(Solution {
-            path: current.clone(),
-            score,
-        }));
-        if solutions.len() > max_solutions {
-            solutions.pop();
-        }
-    }
-    for (nx, ny) in neighbours(x, y) {
-        if nx < 0 || nx >= Game::WIDTH as i8 || ny < 0 || ny >= Game::HEIGHT as i8 {
-            continue;
-        }
-
-        for (letter, trie) in &trie.children {
-            let existing = game.grid[ny as usize][nx as usize];
-            let swaps = if *letter == existing {
-                swaps
-            } else if swaps > 0 {
-                swaps - 1
-            } else {
-                continue;
-            };
-        
-            if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
-                continue;
-            }
-
-            current.push((nx, ny, *letter));
-            visit_tile(game, solutions, max_solutions, current, trie, swaps, nx, ny);
-            current.pop();
-        }
-    }
-}
-
-fn neighbours(x: i8, y: i8) -> impl Iterator<Item=(i8, i8)> {
-    [
-        (x + 1, y + 1),
-        (x    , y + 1),
-        (x - 1, y + 1),
-        (x + 1, y    ),
-        (x - 1, y    ),
-        (x + 1, y - 1),
-        (x    , y - 1),
-        (x - 1, y - 1),
-    ].into_iter()
 }
