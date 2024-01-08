@@ -56,10 +56,10 @@ fn search(
     swaps: u8,
 ) {
     let min_solution = solutions.peek().map(|Reverse(s)| s.score);
-    if solutions.len() >= max_solutions && Some(trie.max_score) <= min_solution {
+    if solutions.len() >= max_solutions && Some(trie.max_score()) <= min_solution {
         return;
     }
-    if trie.is_end_of_word {
+    if trie.is_end_of_word() {
         solutions.push(Reverse(Solution {
             path: current.clone(),
             score: score(game, current),
@@ -79,23 +79,27 @@ fn search(
 
     for nx in moves_x {
         for ny in moves_y.clone() {
-            for (letter, trie) in &trie.children {
-                let existing = game.grid[ny as usize][nx as usize];
-                let swaps = if *letter == existing {
-                    swaps
-                } else if swaps > 0 {
-                    swaps - 1
-                } else {
-                    continue;
-                };
-            
+            let existing = game.grid[ny as usize][nx as usize];
+            if let Some(trie) = trie.child(existing) {
                 if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
                     continue;
                 }
-
-                current.push((nx, ny, *letter));
+                current.push((nx, ny, existing));
                 search(game, solutions, max_solutions, current, trie, swaps);
                 current.pop();
+            }
+            if swaps > 0 {
+                for (letter, trie) in trie.children() {
+                    if letter == existing {
+                        continue;
+                    }
+                    if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
+                        break;
+                    }
+                    current.push((nx, ny, letter));
+                    search(game, solutions, max_solutions, current, trie, swaps - 1);
+                    current.pop();
+                }
             }
         }
     }

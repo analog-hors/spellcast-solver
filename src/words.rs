@@ -1,6 +1,8 @@
+use enumset::{EnumSetType, EnumSet};
+
 use super::game::{letter_score, long_word_bonus};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, EnumSetType, PartialOrd, Ord, Hash)]
 pub enum Letter {
     A, B, C, D, E, F, G, H, I, J, K, L, M,
     N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
@@ -50,9 +52,28 @@ impl TryFrom<char> for Letter {
 
 #[derive(Debug, Default, Clone)]
 pub struct TrieNode {
-    pub children: Vec<(Letter, TrieNode)>,
-    pub is_end_of_word: bool,
-    pub max_score: u32,
+    children: Box<[Option<TrieNode>; 26]>,
+    letters: EnumSet<Letter>,
+    is_end_of_word: bool,
+    max_score: u32,
+}
+
+impl TrieNode {
+    pub fn child(&self, letter: Letter) -> Option<&TrieNode> {
+        self.children[letter as usize].as_ref()
+    }
+
+    pub fn children(&self) -> impl Iterator<Item=(Letter, &TrieNode)> {
+        self.letters.iter().map(|l| (l, self.child(l).unwrap()))
+    }
+
+    pub fn is_end_of_word(&self) -> bool {
+        self.is_end_of_word
+    }
+
+    pub fn max_score(&self) -> u32 {
+        self.max_score
+    }
 }
 
 pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
@@ -63,14 +84,12 @@ pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
         for c in word.chars() {
             let letter = Letter::try_from(c).unwrap();
             current.max_score = current.max_score.max(max_score);
-            let (_, next) = match current.children.iter().position(|(l, _)| *l == letter) {
-                Some(next) => &mut current.children[next],
-                None => {
-                    current.children.push((letter, TrieNode::default()));
-                    current.children.last_mut().unwrap()
-                }
-            };
-            current = next;
+            let next = &mut current.children[letter as usize];
+            if next.is_none() {
+                *next = Some(TrieNode::default());
+                current.letters.insert(letter);
+            }
+            current = next.as_mut().unwrap();
         }
         current.max_score = current.max_score.max(max_score);
         current.is_end_of_word = true;
