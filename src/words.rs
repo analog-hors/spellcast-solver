@@ -55,7 +55,7 @@ pub struct TrieNode {
     children: Box<[Option<TrieNode>; 26]>,
     letters: EnumSet<Letter>,
     is_end_of_word: bool,
-    max_score: u32,
+    max_score: u16,
 }
 
 impl TrieNode {
@@ -71,7 +71,7 @@ impl TrieNode {
         self.is_end_of_word
     }
 
-    pub fn max_score(&self) -> u32 {
+    pub fn max_score(&self) -> u16 {
         self.max_score
     }
 }
@@ -97,7 +97,7 @@ pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
     root
 }
 
-fn max_score(word: &str) -> u32 {
+fn max_score(word: &str) -> u16 {
     let mut word_score = 0;
     let mut max_letter_score = 0;
     for c in word.chars() {

@@ -10,7 +10,7 @@ type Path = ArrayVec<(i8, i8, Letter), {5 * 5}>;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Solution {
     pub path: Path,
-    pub score: u32,
+    pub score: u16,
 }
 
 impl Ord for Solution {
@@ -25,7 +25,7 @@ impl PartialOrd for Solution {
     }
 }
 
-fn score(game: &Game, path: &[(i8, i8, Letter)]) -> u32 {
+fn score(game: &Game, path: &[(i8, i8, Letter)]) -> u16 {
     let mut word_score = 0;
     let mut word_multiplier = 1;
     for &(x, y, letter) in path {

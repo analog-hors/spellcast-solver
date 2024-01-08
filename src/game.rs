@@ -12,7 +12,7 @@ impl Game {
     pub const HEIGHT: usize = 5;
 }
 
-pub const fn letter_score(letter: Letter) -> u32 {
+pub const fn letter_score(letter: Letter) -> u16 {
     use Letter::*;
 
     match letter {
@@ -27,6 +27,6 @@ pub const fn letter_score(letter: Letter) -> u32 {
     }
 }
 
-pub const fn long_word_bonus(length: usize) -> u32 {
+pub const fn long_word_bonus(length: usize) -> u16 {
     if length >= 6 { 10 } else { 0 }
 }
