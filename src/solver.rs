@@ -43,7 +43,7 @@ fn score(game: &Game, path: &[(i8, i8, Letter)]) -> u32 {
 
 pub fn solve(game: &Game, trie: &TrieNode, swaps: u8, max_solutions: usize) -> Vec<Solution> {
     let mut solutions = BinaryHeap::new();
-    search(&game, &mut solutions, max_solutions, &mut Path::default(), &trie, swaps);
+    search(game, &mut solutions, max_solutions, &mut Path::default(), trie, swaps);
     solutions.into_iter().map(|Reverse(s)| s).collect()
 }
 
@@ -62,7 +62,7 @@ fn search(
     if trie.is_end_of_word {
         solutions.push(Reverse(Solution {
             path: current.clone(),
-            score: score(game, &current),
+            score: score(game, current),
         }));
         if solutions.len() > max_solutions {
             solutions.pop();

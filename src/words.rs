@@ -8,7 +8,7 @@ pub enum Letter {
 
 impl From<Letter> for char {
     fn from(value: Letter) -> Self {
-        (value as u8 + 'A' as u8) as char
+        (value as u8 + b'A') as char
     }
 }
 

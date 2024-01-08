@@ -25,7 +25,7 @@ fn main() {
             let mut tile = tile.chars();
             let letter = tile.next().unwrap().try_into().unwrap();
             game.grid[y][x] = letter;
-            while let Some(modifier) = tile.next() {
+            for modifier in tile {
                 match modifier {
                     'l' => game.double_letter = Some((x as i8, y as i8)),
                     'w' => game.double_word = Some((x as i8, y as i8)),
