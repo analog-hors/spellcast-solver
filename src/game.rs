@@ -1,15 +1,11 @@
+use super::tile::Tile;
 use super::words::Letter;
 
 #[derive(Debug, Clone)]
 pub struct Game {
-    pub grid: [[Letter; Game::WIDTH]; Game::HEIGHT],
-    pub double_word: Option<(i8, i8)>,
-    pub double_letter: Option<(i8, i8)>,
-}
-
-impl Game {
-    pub const WIDTH: usize = 5;
-    pub const HEIGHT: usize = 5;
+    pub grid: [Letter; Tile::NUM],
+    pub double_word: Option<Tile>,
+    pub double_letter: Option<Tile>,
 }
 
 pub const fn letter_score(letter: Letter) -> u16 {

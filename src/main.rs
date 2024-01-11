@@ -1,36 +1,33 @@
 mod game;
 mod words;
 mod solver;
+mod tile;
 
 use game::Game;
 use words::Letter;
+use tile::Tile;
 
 fn main() {
     let mut args = std::env::args().skip(1);
     let swaps = args.next().unwrap().parse().unwrap();
     let max_solutions = args.next().unwrap().parse().unwrap();
 
-    let mut parts = std::io::stdin()
-        .lines()
-        .flat_map(|l| l.unwrap().split_ascii_whitespace().map(|s| s.to_owned()).collect::<Vec<_>>());
+    let input = std::io::read_to_string(std::io::stdin()).unwrap();
     
     let mut game = Game {
-        grid: [[Letter::A; Game::WIDTH]; Game::HEIGHT],
+        grid: [Letter::A; Tile::NUM],
         double_word: None,
         double_letter: None,
     };
-    for y in 0..Game::WIDTH {
-        for x in 0..Game::HEIGHT {
-            let tile = parts.next().unwrap();
-            let mut tile = tile.chars();
-            let letter = tile.next().unwrap().try_into().unwrap();
-            game.grid[y][x] = letter;
-            for modifier in tile {
-                match modifier {
-                    'l' => game.double_letter = Some((x as i8, y as i8)),
-                    'w' => game.double_word = Some((x as i8, y as i8)),
-                    _ => {}
-                }
+    for (i, tile_str) in input.split_ascii_whitespace().enumerate() {
+        let tile = Tile::index(i as u8).unwrap();
+        let mut tile_str = tile_str.chars();
+        game.grid[tile as usize] = tile_str.next().unwrap().try_into().unwrap();
+        for modifier in tile_str {
+            match modifier {
+                'l' => game.double_letter = Some(tile),
+                'w' => game.double_word = Some(tile),
+                _ => {}
             }
         }
     }
@@ -45,7 +42,7 @@ fn main() {
     for solution in solutions.iter() {
         let word = solution.path
             .iter()
-            .map(|&(_, _, l)| char::from(l))
+            .map(|&(_, l)| char::from(l))
             .collect::<String>();
         println!("{} {} {:?}", word, solution.score, solution.path);
     }

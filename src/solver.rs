@@ -2,10 +2,12 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
 use arrayvec::ArrayVec;
+use enumset::EnumSet;
+use super::tile::Tile;
 use super::words::{Letter, TrieNode};
 use super::game::{Game, letter_score, long_word_bonus};
 
-type Path = ArrayVec<(i8, i8, Letter), {5 * 5}>;
+type Path = ArrayVec<(Tile, Letter), {Tile::NUM}>;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Solution {
@@ -25,15 +27,41 @@ impl PartialOrd for Solution {
     }
 }
 
-fn score(game: &Game, path: &[(i8, i8, Letter)]) -> u16 {
+#[derive(Debug, Default)]
+struct PathState {
+    path: Path,
+    occupied: EnumSet<Tile>,
+}
+
+impl PathState {
+    fn push(&mut self, tile: Tile, letter: Letter) {
+        self.path.push((tile, letter));
+        self.occupied |= tile;
+    }
+
+    fn pop(&mut self) {
+        if let Some((tile, _)) = self.path.pop() {
+            self.occupied -= tile;
+        }
+    }
+
+    fn neighbours(&self) -> EnumSet<Tile> {
+        match self.path.last() {
+            Some(&(t, _)) => t.neighbours() - self.occupied,
+            None => Tile::ALL,
+        }
+    }
+}
+
+fn score(game: &Game, path: &[(Tile, Letter)]) -> u16 {
     let mut word_score = 0;
     let mut word_multiplier = 1;
-    for &(x, y, letter) in path {
+    for &(tile, letter) in path {
         let mut letter_score = letter_score(letter);
-        if game.double_letter == Some((x, y)) {
+        if Some(tile) == game.double_letter {
             letter_score *= 2;
         }
-        if game.double_word == Some((x, y)) {
+        if Some(tile) == game.double_word {
             word_multiplier = 2;
         }
         word_score += letter_score;
@@ -43,7 +71,7 @@ fn score(game: &Game, path: &[(i8, i8, Letter)]) -> u16 {
 
 pub fn solve(game: &Game, trie: &TrieNode, swaps: u8, max_solutions: usize) -> Vec<Solution> {
     let mut solutions = BinaryHeap::new();
-    search(game, &mut solutions, max_solutions, &mut Path::default(), trie, swaps);
+    search(game, &mut solutions, max_solutions, &mut PathState::default(), trie, swaps);
     solutions.into_iter().map(|Reverse(s)| s).collect()
 }
 
@@ -51,7 +79,7 @@ fn search(
     game: &Game,
     solutions: &mut BinaryHeap<Reverse<Solution>>,
     max_solutions: usize,
-    current: &mut Path,
+    current: &mut PathState,
     trie: &TrieNode,
     swaps: u8,
 ) {
@@ -61,45 +89,26 @@ fn search(
     }
     if trie.is_end_of_word() {
         solutions.push(Reverse(Solution {
-            path: current.clone(),
-            score: score(game, current),
+            path: current.path.clone(),
+            score: score(game, &current.path),
         }));
         if solutions.len() > max_solutions {
             solutions.pop();
         }
     }
 
-    let (moves_x, moves_y) = match current.last() {
-        Some(&(x, y, _)) => (
-            (x - 1).max(0)..(x + 2).min(Game::WIDTH as i8),
-            (y - 1).max(0)..(y + 2).min(Game::HEIGHT as i8),
-        ),
-        None => (0..Game::WIDTH as i8, 0..Game::HEIGHT as i8),
-    };
-
-    for nx in moves_x {
-        for ny in moves_y.clone() {
-            let existing = game.grid[ny as usize][nx as usize];
-            if let Some(trie) = trie.child(existing) {
-                if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
-                    continue;
-                }
-                current.push((nx, ny, existing));
-                search(game, solutions, max_solutions, current, trie, swaps);
+    for next in current.neighbours() {
+        let existing = game.grid[next as usize];
+        if let Some(trie) = trie.child(existing) {
+            current.push(next, existing);
+            search(game, solutions, max_solutions, current, trie, swaps);
+            current.pop();
+        }
+        if swaps > 0 {
+            for (letter, trie) in trie.children().filter(|&(l, _)| l != existing) {
+                current.push(next, letter);
+                search(game, solutions, max_solutions, current, trie, swaps - 1);
                 current.pop();
-            }
-            if swaps > 0 {
-                for (letter, trie) in trie.children() {
-                    if letter == existing {
-                        continue;
-                    }
-                    if current.iter().any(|&(px, py, _)| (px, py) == (nx, ny)) {
-                        break;
-                    }
-                    current.push((nx, ny, letter));
-                    search(game, solutions, max_solutions, current, trie, swaps - 1);
-                    current.pop();
-                }
             }
         }
     }
