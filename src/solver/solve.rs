@@ -3,9 +3,9 @@ use std::collections::BinaryHeap;
 
 use arrayvec::ArrayVec;
 use enumset::EnumSet;
-use super::tile::Tile;
-use super::words::{Letter, TrieNode};
-use super::game::{Game, letter_score, long_word_bonus};
+use crate::repr::{Board, Letter, Tile};
+use super::score::{letter_score, long_word_bonus};
+use super::trie::TrieNode;
 
 type Path = ArrayVec<(Tile, Letter), {Tile::NUM}>;
 
@@ -53,30 +53,14 @@ impl PathState {
     }
 }
 
-fn score(game: &Game, path: &[(Tile, Letter)]) -> u16 {
-    let mut word_score = 0;
-    let mut word_multiplier = 1;
-    for &(tile, letter) in path {
-        let mut letter_score = letter_score(letter);
-        if Some(tile) == game.double_letter {
-            letter_score *= 2;
-        }
-        if Some(tile) == game.double_word {
-            word_multiplier = 2;
-        }
-        word_score += letter_score;
-    }
-    word_score * word_multiplier + long_word_bonus(path.len())
-}
-
-pub fn solve(game: &Game, trie: &TrieNode, swaps: u8, max_solutions: usize) -> Vec<Solution> {
+pub fn solve(game: &Board, trie: &TrieNode, swaps: u8, max_solutions: usize) -> Vec<Solution> {
     let mut solutions = BinaryHeap::new();
     search(game, &mut solutions, max_solutions, &mut PathState::default(), trie, swaps);
     solutions.into_iter().map(|Reverse(s)| s).collect()
 }
 
 fn search(
-    game: &Game,
+    game: &Board,
     solutions: &mut BinaryHeap<Reverse<Solution>>,
     max_solutions: usize,
     current: &mut PathState,
@@ -112,4 +96,20 @@ fn search(
             }
         }
     }
+}
+
+fn score(game: &Board, path: &[(Tile, Letter)]) -> u16 {
+    let mut word_score = 0;
+    let mut word_multiplier = 1;
+    for &(tile, letter) in path {
+        let mut letter_score = letter_score(letter);
+        if Some(tile) == game.double_letter {
+            letter_score *= 2;
+        }
+        if Some(tile) == game.double_word {
+            word_multiplier = 2;
+        }
+        word_score += letter_score;
+    }
+    word_score * word_multiplier + long_word_bonus(path.len())
 }

@@ -1,12 +1,4 @@
-use super::tile::Tile;
-use super::words::Letter;
-
-#[derive(Debug, Clone)]
-pub struct Game {
-    pub grid: [Letter; Tile::NUM],
-    pub double_word: Option<Tile>,
-    pub double_letter: Option<Tile>,
-}
+use crate::repr::Letter;
 
 pub const fn letter_score(letter: Letter) -> u16 {
     use Letter::*;

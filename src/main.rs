@@ -1,11 +1,8 @@
-mod game;
-mod words;
+mod repr;
 mod solver;
-mod tile;
 
-use game::Game;
-use words::Letter;
-use tile::Tile;
+use repr::{Board, Tile, Letter};
+use solver::{make_word_trie, solve};
 
 fn main() {
     let mut args = std::env::args().skip(1);
@@ -14,7 +11,7 @@ fn main() {
 
     let input = std::io::read_to_string(std::io::stdin()).unwrap();
     
-    let mut game = Game {
+    let mut board = Board {
         grid: [Letter::A; Tile::NUM],
         double_word: None,
         double_letter: None,
@@ -22,20 +19,20 @@ fn main() {
     for (i, tile_str) in input.split_ascii_whitespace().enumerate() {
         let tile = Tile::index(i as u8).unwrap();
         let mut tile_str = tile_str.chars();
-        game.grid[tile as usize] = tile_str.next().unwrap().try_into().unwrap();
+        board.grid[tile as usize] = tile_str.next().unwrap().try_into().unwrap();
         for modifier in tile_str {
             match modifier {
-                'l' => game.double_letter = Some(tile),
-                'w' => game.double_word = Some(tile),
+                'l' => board.double_letter = Some(tile),
+                'w' => board.double_word = Some(tile),
                 _ => {}
             }
         }
     }
 
-    let trie = words::make_word_trie(include_str!("../wordlist.txt").lines());
+    let trie = make_word_trie(include_str!("../wordlist.txt").lines());
 
     let start = std::time::Instant::now();
-    let mut solutions = solver::solve(&game, &trie, swaps, max_solutions);
+    let mut solutions = solve(&board, &trie, swaps, max_solutions);
     let elapsed = start.elapsed();
 
     solutions.sort_unstable_by_key(|s| s.score);
