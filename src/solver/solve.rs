@@ -56,7 +56,7 @@ impl PathState {
 pub fn solve(game: &Board, trie: &TrieNode, swaps: u8, max_solutions: usize) -> Vec<Solution> {
     let mut solutions = BinaryHeap::new();
     search(game, &mut solutions, max_solutions, &mut PathState::default(), trie, swaps);
-    solutions.into_iter().map(|Reverse(s)| s).collect()
+    solutions.into_sorted_vec().into_iter().map(|Reverse(s)| s).collect()
 }
 
 fn search(

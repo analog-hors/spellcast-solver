@@ -32,11 +32,10 @@ fn main() {
     let trie = make_word_trie(include_str!("../wordlist.txt").lines());
 
     let start = std::time::Instant::now();
-    let mut solutions = solve(&board, &trie, swaps, max_solutions);
+    let solutions = solve(&board, &trie, swaps, max_solutions);
     let elapsed = start.elapsed();
 
-    solutions.sort_unstable_by_key(|s| s.score);
-    for solution in solutions.iter() {
+    for solution in solutions.iter().rev() {
         let word = solution.path
             .iter()
             .map(|&(_, l)| char::from(l))
