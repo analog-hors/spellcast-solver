@@ -1,6 +1,6 @@
 use enumset::EnumSet;
 use crate::repr::Letter;
-use super::dense::DenseTrieNode;
+use super::large::LargeTrieNode;
 
 #[derive(Debug, Default)]
 struct TrieNode {
@@ -14,7 +14,7 @@ pub struct TrieArena(Vec<TrieNode>);
 
 impl TrieArena {
     pub fn new<'w>(words: impl Iterator<Item=&'w str>) -> Self {
-        let mut root = DenseTrieNode::default();
+        let mut root = LargeTrieNode::default();
         for word in words {
             root.insert_word(word);
         }
@@ -30,19 +30,18 @@ impl TrieArena {
     }
 }
 
-fn build_arena(arena: &mut Vec<TrieNode>, index: usize, dense: DenseTrieNode) {
+fn build_arena(arena: &mut Vec<TrieNode>, index: usize, large: LargeTrieNode) {
     let children = arena.len() as u32;
 
     let node = &mut arena[index];
     node.children = children;
-    node.letters = dense.letters;
-    node.is_end_of_word = dense.is_end_of_word;
-    node.max_score = dense.max_score;
+    node.letters = large.letters();
+    node.is_end_of_word = large.is_end_of_word();
+    node.max_score = large.max_score();
     
-    let children_count = node.letters.len();
-    arena.extend((0..children_count).map(|_| TrieNode::default()));
-    for (child, dense) in dense.children.into_iter().flatten().enumerate() {
-        build_arena(arena, children as usize + child, dense);
+    arena.extend((0..large.letters().len()).map(|_| TrieNode::default()));
+    for (child, (_, large)) in large.into_children().enumerate() {
+        build_arena(arena, children as usize + child, large);
     }
 }
 
