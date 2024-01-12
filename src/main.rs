@@ -2,7 +2,7 @@ mod repr;
 mod solver;
 
 use repr::{Board, Tile, Letter};
-use solver::{make_word_trie, solve};
+use solver::{TrieArena, solve};
 
 fn main() {
     let mut args = std::env::args().skip(1);
@@ -29,10 +29,10 @@ fn main() {
         }
     }
 
-    let trie = make_word_trie(include_str!("../wordlist.txt").lines());
+    let trie = TrieArena::new(include_str!("../wordlist.txt").lines());
 
     let start = std::time::Instant::now();
-    let solutions = solve(&board, &trie, swaps, max_solutions);
+    let solutions = solve(&board, trie.root(), swaps, max_solutions);
     let elapsed = start.elapsed();
 
     for solution in solutions.iter().rev() {

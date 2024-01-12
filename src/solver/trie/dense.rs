@@ -1,44 +1,25 @@
 use enumset::EnumSet;
 use crate::repr::Letter;
-use super::score::{letter_score, long_word_bonus};
+use super::super::score::{letter_score, long_word_bonus};
 
 #[derive(Debug, Default, Clone)]
-pub struct TrieNode {
-    children: Box<[Option<TrieNode>; 26]>,
-    letters: EnumSet<Letter>,
-    is_end_of_word: bool,
-    max_score: u16,
+pub struct DenseTrieNode {
+    pub children: Box<[Option<DenseTrieNode>; 26]>,
+    pub letters: EnumSet<Letter>,
+    pub is_end_of_word: bool,
+    pub max_score: u16,
 }
 
-impl TrieNode {
-    pub fn child(&self, letter: Letter) -> Option<&TrieNode> {
-        self.children[letter as usize].as_ref()
-    }
-
-    pub fn children(&self, exclude: EnumSet<Letter>) -> impl Iterator<Item=(Letter, &TrieNode)> {
-        (self.letters - exclude).iter().map(|l| (l, self.child(l).unwrap()))
-    }
-
-    pub fn is_end_of_word(&self) -> bool {
-        self.is_end_of_word
-    }
-
-    pub fn max_score(&self) -> u16 {
-        self.max_score
-    }
-}
-
-pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
-    let mut root = TrieNode::default();
-    for word in words {
+impl DenseTrieNode {
+    pub fn insert_word(&mut self, word: &str) {
         let max_score = max_score(word);
-        let mut current = &mut root;
+        let mut current = self;
         for c in word.chars() {
             let letter = Letter::try_from(c).unwrap();
             current.max_score = current.max_score.max(max_score);
             let next = &mut current.children[letter as usize];
             if next.is_none() {
-                *next = Some(TrieNode::default());
+                *next = Some(DenseTrieNode::default());
                 current.letters.insert(letter);
             }
             current = next.as_mut().unwrap();
@@ -46,7 +27,6 @@ pub fn make_word_trie<'w>(words: impl Iterator<Item=&'w str>) -> TrieNode {
         current.max_score = current.max_score.max(max_score);
         current.is_end_of_word = true;
     }
-    root
 }
 
 fn max_score(word: &str) -> u16 {

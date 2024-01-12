@@ -3,7 +3,7 @@ use std::collections::BinaryHeap;
 
 use crate::repr::{Board, Letter, Tile};
 use super::score::{letter_score, long_word_bonus};
-use super::trie::TrieNode;
+use super::trie::TrieRef;
 use super::path::{Path, PathState};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -24,7 +24,7 @@ impl PartialOrd for Solution {
     }
 }
 
-pub fn solve(board: &Board, trie: &TrieNode, swaps: u8, max_solutions: usize) -> Vec<Solution> {
+pub fn solve(board: &Board, trie: TrieRef, swaps: u8, max_solutions: usize) -> Vec<Solution> {
     let mut solutions = BinaryHeap::new();
     search(board, &mut solutions, max_solutions, &mut PathState::default(), trie, swaps);
     solutions.into_sorted_vec().into_iter().map(|Reverse(s)| s).collect()
@@ -35,7 +35,7 @@ fn search(
     solutions: &mut BinaryHeap<Reverse<Solution>>,
     max_solutions: usize,
     current: &mut PathState,
-    trie: &TrieNode,
+    trie: TrieRef,
     swaps: u8,
 ) {
     let min_solution = solutions.peek().map(|Reverse(s)| s.score);
@@ -63,7 +63,7 @@ fn search(
     if swaps > 0 {
         for next in current.neighbours() {
             let existing = board.grid[next as usize];
-            for (letter, trie) in trie.children(existing.into()) {
+            for (letter, trie) in trie.children().filter(|&(l, _)| l != existing) {
                 current.push(next, letter);
                 search(board, solutions, max_solutions, current, trie, swaps - 1);
                 current.pop();

@@ -3,5 +3,5 @@ mod trie;
 mod path;
 mod solve;
 
-pub use trie::{TrieNode, make_word_trie};
+pub use trie::{TrieArena, TrieRef};
 pub use solve::{Solution, solve};

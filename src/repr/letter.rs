@@ -1,6 +1,7 @@
 use enumset::EnumSetType;
 
 #[derive(Debug, EnumSetType, PartialOrd, Ord, Hash)]
+#[enumset(repr = "u32")]
 pub enum Letter {
     A, B, C, D, E, F, G, H, I, J, K, L, M,
     N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
