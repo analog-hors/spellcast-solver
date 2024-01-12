@@ -32,7 +32,7 @@ fn main() {
     let trie = TrieArena::new(include_str!("../wordlist.txt").lines());
 
     let start = std::time::Instant::now();
-    let solutions = solve(&board, trie.root(), swaps, max_solutions);
+    let solutions = solve(&board, &trie, swaps, max_solutions);
     let elapsed = start.elapsed();
 
     for solution in solutions.iter().rev() {
