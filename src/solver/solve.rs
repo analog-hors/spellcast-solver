@@ -1,13 +1,10 @@
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
-use arrayvec::ArrayVec;
-use enumset::EnumSet;
 use crate::repr::{Board, Letter, Tile};
 use super::score::{letter_score, long_word_bonus};
 use super::trie::TrieNode;
-
-type Path = ArrayVec<(Tile, Letter), {Tile::NUM}>;
+use super::path::{Path, PathState};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Solution {
@@ -24,32 +21,6 @@ impl Ord for Solution {
 impl PartialOrd for Solution {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-#[derive(Debug, Default)]
-struct PathState {
-    path: Path,
-    occupied: EnumSet<Tile>,
-}
-
-impl PathState {
-    fn push(&mut self, tile: Tile, letter: Letter) {
-        self.path.push((tile, letter));
-        self.occupied |= tile;
-    }
-
-    fn pop(&mut self) {
-        if let Some((tile, _)) = self.path.pop() {
-            self.occupied -= tile;
-        }
-    }
-
-    fn neighbours(&self) -> EnumSet<Tile> {
-        match self.path.last() {
-            Some(&(t, _)) => t.neighbours() - self.occupied,
-            None => Tile::ALL,
-        }
     }
 }
 
@@ -73,8 +44,8 @@ fn search(
     }
     if trie.is_end_of_word() {
         solutions.push(Reverse(Solution {
-            path: current.path.clone(),
-            score: score(board, &current.path),
+            path: current.path().clone(),
+            score: score(board, current.path()),
         }));
         if solutions.len() > max_solutions {
             solutions.pop();
