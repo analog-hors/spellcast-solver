@@ -88,8 +88,11 @@ fn search(
             search(board, solutions, max_solutions, current, trie, swaps);
             current.pop();
         }
-        if swaps > 0 {
-            for (letter, trie) in trie.children().filter(|&(l, _)| l != existing) {
+    }
+    if swaps > 0 {
+        for next in current.neighbours() {
+            let existing = board.grid[next as usize];
+            for (letter, trie) in trie.children(existing.into()) {
                 current.push(next, letter);
                 search(board, solutions, max_solutions, current, trie, swaps - 1);
                 current.pop();

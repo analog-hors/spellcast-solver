@@ -15,8 +15,8 @@ impl TrieNode {
         self.children[letter as usize].as_ref()
     }
 
-    pub fn children(&self) -> impl Iterator<Item=(Letter, &TrieNode)> {
-        self.letters.iter().map(|l| (l, self.child(l).unwrap()))
+    pub fn children(&self, exclude: EnumSet<Letter>) -> impl Iterator<Item=(Letter, &TrieNode)> {
+        (self.letters - exclude).iter().map(|l| (l, self.child(l).unwrap()))
     }
 
     pub fn is_end_of_word(&self) -> bool {
